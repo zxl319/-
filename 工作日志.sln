@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280 d18.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "对账平台", "工作日志\对账平台.csproj", "{6DB4E3EF-1C01-45A8-AEB2-0D431482DE8E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6DB4E3EF-1C01-45A8-AEB2-0D431482DE8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DB4E3EF-1C01-45A8-AEB2-0D431482DE8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DB4E3EF-1C01-45A8-AEB2-0D431482DE8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DB4E3EF-1C01-45A8-AEB2-0D431482DE8E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CEAC33DA-671A-4C62-93BA-A683E5C1BEE1}
+	EndGlobalSection
+EndGlobal
