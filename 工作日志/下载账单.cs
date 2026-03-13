@@ -535,75 +535,146 @@ namespace 对账平台
             sd = new StringBuilder();
             sd.Append("SELECT * FROM DZPT.dbo.WxMerchant WHERE Flag='0'");
             DataSet oo = db.select_sb(sd.ToString());
-
-            MCH_ID = oo.Tables[0].Rows[0][0].ToString();
-            API_KEY = oo.Tables[0].Rows[0][2].ToString();
-            APPID = oo.Tables[0].Rows[0][1].ToString();
-            MCH_PRIVATE_KEY = oo.Tables[0].Rows[0][4].ToString(); // 商户私钥（V3签名用）
-            SERIAL_NO = oo.Tables[0].Rows[0][3].ToString();       // 商户证书序列号（V3签名用）
-            try
+             if (oo.Tables[0].Rows.Count == 1)
             {
-                // 1. 选择账单日期
-                string billDate = Datetime.Replace("-", "");
-                string billDate1 = Datetime;
-
-                // 3. 先尝试V3接口申请账单
-                string downloadUrl = await ApplyWeChatBill(billDate);
-                string billContent = string.Empty;
-
-                if (!string.IsNullOrEmpty(downloadUrl) && !downloadUrl.Contains("失败"))
+                MCH_ID = oo.Tables[0].Rows[0][0].ToString();
+                API_KEY = oo.Tables[0].Rows[0][2].ToString();
+                APPID = oo.Tables[0].Rows[0][1].ToString();
+                MCH_PRIVATE_KEY = oo.Tables[0].Rows[0][4].ToString(); // 商户私钥（V3签名用）
+                SERIAL_NO = oo.Tables[0].Rows[0][3].ToString();       // 商户证书序列号（V3签名用）
+                try
                 {
-                    // V3申请成功，使用下载地址下载
-                    billContent = await DownloadWeChatBill(billDate, "ALL", downloadUrl);
-                }
-                else
-                {
-                    // V3申请失败，降级使用V2接口直接下载
-                    MessageBox.Show("V3接口申请账单失败，尝试使用V2接口下载...", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    billContent = await DownloadWeChatBill(billDate, "ALL");
-                }
+                    // 1. 选择账单日期
+                    string billDate = Datetime.Replace("-", "");
+                    string billDate1 = Datetime;
 
-                // 4. 校验账单内容并加载到DataGridView
-                if (string.IsNullOrEmpty(billContent) || billContent.Contains("失败"))
-                {
-                    MessageBox.Show($"账单下载失败：{billContent}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-                //去掉表头
-                billContent = billContent.Substring(billContent.IndexOf("`"));
-                //去掉汇总
-                billContent = billContent.Substring(0, billContent.IndexOf("总交易单数"));
-                //去掉特殊符号
-                billContent = billContent.Replace("`", "").Replace("\n", "");
-                //按换行符分割
-                string[] strayy = billContent.Split('\r');
+                    // 3. 先尝试V3接口申请账单
+                    string downloadUrl = await ApplyWeChatBill(billDate);
+                    string billContent = string.Empty;
 
-                if (strayy.Length > 0)
-                {
-                    int n = db.insert_sb(" DELETE FROM [DZPT].[dbo].[WxTradeBill] WHERE CONVERT(DATE,交易时间)='" + billDate1 + "' ");
-
-                    for (int i = 0; i < strayy.Length; i++)
+                    if (!string.IsNullOrEmpty(downloadUrl) && !downloadUrl.Contains("失败"))
                     {
-                        //按逗号分割
-                        string[] item = strayy[i].Split(',');
-                        if (item.Length > 26)
-                        {
-                            StringBuilder sb = new StringBuilder();
+                        // V3申请成功，使用下载地址下载
+                        billContent = await DownloadWeChatBill(billDate, "ALL", downloadUrl);
+                    }
+                    else
+                    {
+                        // V3申请失败，降级使用V2接口直接下载
+                        billContent = await DownloadWeChatBill(billDate, "ALL");
+                    }
 
-                            sb.Append(" INSERT INTO [DZPT].[dbo].[WxTradeBill] ([交易时间],[公众账号ID],[商户号],[特约商户号],[设备号],[微信订单号],[商户订单号],[用户标识], ");
-                            sb.Append(" [交易类型],[交易状态],[付款银行],[货币种类],[应结订单金额],[代金券金额],[微信退款单号],[商户退款单号],[退款金额],[充值券退款金额], ");
-                            sb.Append(" [退款类型],[退款状态],[商品名称],[商户数据包],[手续费],[费率],[订单金额],[申请退款金额],[费率备注]) ");
-                            sb.Append("  VALUES('" + item[0].ToString() + "','" + item[1].ToString() + "','" + item[2].ToString() + "','" + item[3].ToString() + "','" + item[4].ToString() + "','" + item[5].ToString() + "','" + item[6].ToString() + "','" + item[7].ToString() + "','" + item[8].ToString() + "', ");
-                            sb.Append("  '" + item[9].ToString() + "','" + item[10].ToString() + "','" + item[11].ToString() + "','" + item[12].ToString() + "','" + item[13].ToString() + "','" + item[14].ToString() + "','" + item[15].ToString() + "','" + item[16].ToString() + "','" + item[17].ToString() + "', ");
-                            sb.Append("  '" + item[18].ToString() + "','" + item[19].ToString() + "','" + item[20].ToString() + "','" + item[21].ToString() + "','" + item[22].ToString() + "','" + item[23].ToString() + "','" + item[24].ToString() + "','" + item[25].ToString() + "','" + item[26].ToString() + "') ");
-                            int m = db.insert_sb(sb.ToString());
+                    // 4. 校验账单内容并加载到DataGridView
+                    if (string.IsNullOrEmpty(billContent) || billContent.Contains("失败"))
+                    {
+                        return;
+                    }
+                    //去掉表头
+                    billContent = billContent.Substring(billContent.IndexOf("`"));
+                    //去掉汇总
+                    billContent = billContent.Substring(0, billContent.IndexOf("总交易单数"));
+                    //去掉特殊符号
+                    billContent = billContent.Replace("`", "").Replace("\n", "");
+                    //按换行符分割
+                    string[] strayy = billContent.Split('\r');
+
+                    if (strayy.Length > 0)
+                    {
+                        int n = db.insert_sb(" DELETE FROM [DZPT].[dbo].[WxTradeBill] WHERE CONVERT(DATE,交易时间)='" + billDate1 + "' ");
+
+                        for (int i = 0; i < strayy.Length; i++)
+                        {
+                            //按逗号分割
+                            string[] item = strayy[i].Split(',');
+                            if (item.Length > 26)
+                            {
+                                StringBuilder sb = new StringBuilder();
+
+                                sb.Append(" INSERT INTO [DZPT].[dbo].[WxTradeBill] ([交易时间],[公众账号ID],[商户号],[特约商户号],[设备号],[微信订单号],[商户订单号],[用户标识], ");
+                                sb.Append(" [交易类型],[交易状态],[付款银行],[货币种类],[应结订单金额],[代金券金额],[微信退款单号],[商户退款单号],[退款金额],[充值券退款金额], ");
+                                sb.Append(" [退款类型],[退款状态],[商品名称],[商户数据包],[手续费],[费率],[订单金额],[申请退款金额],[费率备注]) ");
+                                sb.Append("  VALUES('" + item[0].ToString() + "','" + item[1].ToString() + "','" + item[2].ToString() + "','" + item[3].ToString() + "','" + item[4].ToString() + "','" + item[5].ToString() + "','" + item[6].ToString() + "','" + item[7].ToString() + "','" + item[8].ToString() + "', ");
+                                sb.Append("  '" + item[9].ToString() + "','" + item[10].ToString() + "','" + item[11].ToString() + "','" + item[12].ToString() + "','" + item[13].ToString() + "','" + item[14].ToString() + "','" + item[15].ToString() + "','" + item[16].ToString() + "','" + item[17].ToString() + "', ");
+                                sb.Append("  '" + item[18].ToString() + "','" + item[19].ToString() + "','" + item[20].ToString() + "','" + item[21].ToString() + "','" + item[22].ToString() + "','" + item[23].ToString() + "','" + item[24].ToString() + "','" + item[25].ToString() + "','" + item[26].ToString() + "') ");
+                                int m = db.insert_sb(sb.ToString());
+                            }
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                }
             }
-            catch (Exception ex)
+            else if (oo.Tables[0].Rows.Count > 1)
             {
-                MessageBox.Show($"加载账单时发生异常：{ex.Message}", "异常", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                for (int i = 0; i < oo.Tables[0].Rows.Count; i++)
+                {
+                    MCH_ID = oo.Tables[0].Rows[i][0].ToString();
+                    API_KEY = oo.Tables[0].Rows[i][2].ToString();
+                    APPID = oo.Tables[0].Rows[i][1].ToString();
+                    MCH_PRIVATE_KEY = oo.Tables[0].Rows[i][4].ToString(); // 商户私钥（V3签名用）
+                    SERIAL_NO = oo.Tables[0].Rows[i][3].ToString();       // 商户证书序列号（V3签名用）
+                    try
+                    {
+                        // 1. 选择账单日期
+                        string billDate = Datetime.Replace("-", "");
+                        string billDate1 = Datetime;
+
+                        // 3. 先尝试V3接口申请账单
+                        string downloadUrl = await ApplyWeChatBill(billDate);
+                        string billContent = string.Empty;
+
+                        if (!string.IsNullOrEmpty(downloadUrl) && !downloadUrl.Contains("失败"))
+                        {
+                            // V3申请成功，使用下载地址下载
+                            billContent = await DownloadWeChatBill(billDate, "ALL", downloadUrl);
+                        }
+                        else
+                        {
+                            // V3申请失败，降级使用V2接口直接下载
+                            billContent = await DownloadWeChatBill(billDate, "ALL");
+                        }
+
+                        // 4. 校验账单内容并加载到DataGridView
+                        if (string.IsNullOrEmpty(billContent) || billContent.Contains("失败"))
+                        {
+                            return;
+                        }
+                        //去掉表头
+                        billContent = billContent.Substring(billContent.IndexOf("`"));
+                        //去掉汇总
+                        billContent = billContent.Substring(0, billContent.IndexOf("总交易单数"));
+                        //去掉特殊符号
+                        billContent = billContent.Replace("`", "").Replace("\n", "");
+                        //按换行符分割
+                        string[] strayy = billContent.Split('\r');
+
+                        if (strayy.Length > 0)
+                        {
+                            int n = db.insert_sb(" DELETE FROM [DZPT].[dbo].[WxTradeBill] WHERE CONVERT(DATE,交易时间)='" + billDate1 + "' ");
+
+                            for (int ii = 0; ii < strayy.Length; ii++)
+                            {
+                                //按逗号分割
+                                string[] item = strayy[ii].Split(',');
+                                if (item.Length > 26)
+                                {
+                                    StringBuilder sb = new StringBuilder();
+
+                                    sb.Append(" INSERT INTO [DZPT].[dbo].[WxTradeBill] ([交易时间],[公众账号ID],[商户号],[特约商户号],[设备号],[微信订单号],[商户订单号],[用户标识], ");
+                                    sb.Append(" [交易类型],[交易状态],[付款银行],[货币种类],[应结订单金额],[代金券金额],[微信退款单号],[商户退款单号],[退款金额],[充值券退款金额], ");
+                                    sb.Append(" [退款类型],[退款状态],[商品名称],[商户数据包],[手续费],[费率],[订单金额],[申请退款金额],[费率备注]) ");
+                                    sb.Append("  VALUES('" + item[0].ToString() + "','" + item[1].ToString() + "','" + item[2].ToString() + "','" + item[3].ToString() + "','" + item[4].ToString() + "','" + item[5].ToString() + "','" + item[6].ToString() + "','" + item[7].ToString() + "','" + item[8].ToString() + "', ");
+                                    sb.Append("  '" + item[9].ToString() + "','" + item[10].ToString() + "','" + item[11].ToString() + "','" + item[12].ToString() + "','" + item[13].ToString() + "','" + item[14].ToString() + "','" + item[15].ToString() + "','" + item[16].ToString() + "','" + item[17].ToString() + "', ");
+                                    sb.Append("  '" + item[18].ToString() + "','" + item[19].ToString() + "','" + item[20].ToString() + "','" + item[21].ToString() + "','" + item[22].ToString() + "','" + item[23].ToString() + "','" + item[24].ToString() + "','" + item[25].ToString() + "','" + item[26].ToString() + "') ");
+                                    int m = db.insert_sb(sb.ToString());
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                }
             }
         }
 
