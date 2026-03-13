@@ -43,7 +43,7 @@ namespace 对账平台
         public 下载账单()
         {
             InitializeComponent();
-            button1.Text = "申请并下载微信交易账单";
+            button1.Text = "申请并下载微信交易账单 ";
 
             // 初始化HttpClient（设置超时和默认请求头）
             _httpClient = new HttpClient();
