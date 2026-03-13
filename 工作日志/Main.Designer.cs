@@ -79,13 +79,6 @@ namespace 对账平台
             this.添加医院信息ToolStripMenuItem.Text = "添加医院信息";
             this.添加医院信息ToolStripMenuItem.Click += new System.EventHandler(this.添加配置ToolStripMenuItem_Click);
             // 
-            // 添加服务器信息ToolStripMenuItem
-            // 
-            this.添加服务器信息ToolStripMenuItem.Name = "添加服务器信息ToolStripMenuItem";
-            this.添加服务器信息ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.添加服务器信息ToolStripMenuItem.Text = "添加服务器信息";
-            this.添加服务器信息ToolStripMenuItem.Click += new System.EventHandler(this.添加服务器信息ToolStripMenuItem_Click);
-            // 
             // 添加个人账号信息ToolStripMenuItem
             // 
             this.添加个人账号信息ToolStripMenuItem.Name = "添加个人账号信息ToolStripMenuItem";

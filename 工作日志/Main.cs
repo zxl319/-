@@ -23,16 +23,6 @@ namespace 对账平台
             A1.Owner = this;
             A1.ShowDialog();
         }
-
-
-        private void 添加服务器信息ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            服务器信息 A1 = new 服务器信息();
-            A1.Owner = this;
-            A1.ShowDialog();
-
-        }
-
         private void 添加个人账号信息ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             个人账号 A1 = new 个人账号();
