@@ -16,7 +16,7 @@ namespace 对账平台
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Main());
+            Application.Run(new LogIn());
         }
     }
 }

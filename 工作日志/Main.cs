@@ -66,5 +66,10 @@ namespace 对账平台
             A1.Owner = this;
             A1.ShowDialog();
         }
+
+        private void Main_Load(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Maximized;
+        }
     }
 }
