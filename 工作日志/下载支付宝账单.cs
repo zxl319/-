@@ -12,6 +12,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace 对账平台
@@ -19,9 +20,10 @@ namespace 对账平台
     public partial class 下载支付宝账单 : Form
     {
         // 支付宝配置
-        private static string _alipayAppId = ConfigurationManager.AppSettings["AlipayAppId"];
-        private static string _alipayPrivateKey = ConfigurationManager.AppSettings["AlipayPrivateKey"];
-        private static string _alipayPublicKey = ConfigurationManager.AppSettings["AlipayPublicKey"];
+        private static string _alipayAppId;
+        private static string _alipayPrivateKey ;
+        private static string _alipayPublicKey;
+        private static string _alipayUrl;
 
         // 数据库配置（从App.config读取）
         private static readonly string _dbConnStr = ConfigurationManager.AppSettings["DB_ConnectionString"];
@@ -33,34 +35,11 @@ namespace 对账平台
         public 下载支付宝账单()
         {
             InitializeComponent();
-            LoadAlipayConfig();
             InitFormControls();
             btnDownloadBill.Text = "下载支付宝账单并直接入库";
         }
 
         #region 1. 基础初始化
-        private void LoadAlipayConfig()
-        {
-            try
-            {
-                _alipayAppId = ConfigurationManager.AppSettings["AlipayAppId"];
-                _alipayPrivateKey = ConfigurationManager.AppSettings["AlipayPrivateKey"];
-                _alipayPublicKey = ConfigurationManager.AppSettings["AlipayPublicKey"];
-
-                if (string.IsNullOrWhiteSpace(_alipayAppId) ||
-                    string.IsNullOrWhiteSpace(_alipayPrivateKey) ||
-                    string.IsNullOrWhiteSpace(_alipayPublicKey) ||
-                    string.IsNullOrWhiteSpace(_dbConnStr))
-                {
-                    throw new Exception("支付宝配置/数据库连接字符串不完整，请检查App.config！");
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"配置加载失败：{ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Application.Exit();
-            }
-        }
 
         private void InitFormControls()
         {
@@ -74,10 +53,6 @@ namespace 对账平台
             dgvBillData.ReadOnly = true;
             dgvBillData.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvBillData.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-
-            // 状态初始化
-            progressBar1.Visible = false;
-            lblStatus.Text = "就绪";
         }
         #endregion
 
@@ -102,29 +77,6 @@ namespace 对账平台
                 }
             }
         }
-
-        /// <summary>
-        /// 执行SQL查询
-        /// </summary>
-        private DataTable ExecuteQuery(string sql)
-        {
-            using (SqlConnection conn = new SqlConnection(_dbConnStr))
-            {
-                try
-                {
-                    conn.Open();
-                    SqlDataAdapter adapter = new SqlDataAdapter(sql, conn);
-                    DataTable dt = new DataTable();
-                    adapter.Fill(dt);
-                    return dt;
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"数据库查询失败：{ex.Message}\nSQL：{sql}");
-                }
-            }
-        }
-
         /// <summary>
         /// 批量插入支付宝账单数据（先删后插，避免重复）
         /// </summary>
@@ -202,7 +154,7 @@ namespace 对账平台
             try
             {
                 IAopClient client = new DefaultAopClient(
-                    "https://openapi.alipay.com/gateway.do",
+                    _alipayUrl,
                     _alipayAppId,
                     _alipayPrivateKey,
                     "json",
@@ -346,10 +298,26 @@ namespace 对账平台
         }
         #endregion
 
-       public static async void ZFBZD(string Datetime)
+        public static async void ZFBZD(string Datetime)
         {
-            try
+            DBHelper db = new DBHelper();
+
+            StringBuilder sd = new StringBuilder();
+            sd.Append("SELECT config_value FROM DZPT.dbo.Config WHERE config_name='ZFB_Config'");
+            DataSet op = db.select_sb(sd.ToString());
+
+            XDocument xDoc = XDocument.Parse(op.Tables[0].Rows[0][0].ToString());
+            _alipayUrl = xDoc.Root.Element("alipayUrl")?.Value;
+
+            sd = new StringBuilder();
+            sd.Append("SELECT * FROM DZPT.dbo.WxMerchant WHERE Flag='0'");
+            DataSet oo = db.select_sb(sd.ToString());
+
+            if (oo.Tables[0].Rows.Count == 1)
             {
+                _alipayAppId = oo.Tables[0].Rows[0][0].ToString();
+                _alipayPrivateKey = oo.Tables[0].Rows[0][2].ToString();
+                _alipayPublicKey = oo.Tables[0].Rows[0][1].ToString();
 
                 // 1. 获取账单日期
                 string billDate = Datetime;
@@ -360,17 +328,37 @@ namespace 对账平台
                 {
                     throw new Exception("获取账单下载链接失败");
                 }
-
                 // 3. 异步下载ZIP并解析CSV（替换原有直接读取逻辑）
-                List<string[]> billData =  ParseAlipayBillZip(downloadUrl);
+                List<string[]> billData = ParseAlipayBillZip(downloadUrl);
 
                 // 4. 批量插入数据库
                 BatchInsertAlipayBill(billDate, billData);
 
             }
-            catch (Exception ex)
+            else if (oo.Tables[0].Rows.Count > 1)
             {
-                MessageBox.Show($"账单处理出错：{ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                for (int i = 0; i < oo.Tables[0].Rows.Count; i++)
+                {
+                    _alipayAppId = oo.Tables[0].Rows[i][0].ToString();
+                    _alipayPrivateKey = oo.Tables[0].Rows[i][2].ToString();
+                    _alipayPublicKey = oo.Tables[0].Rows[i][1].ToString();
+
+                    // 1. 获取账单日期
+                    string billDate = Datetime;
+
+                    // 2. 异步获取下载链接
+                    string downloadUrl = GetBillDownloadUrl(billDate);
+                    if (string.IsNullOrEmpty(downloadUrl))
+                    {
+                        throw new Exception("获取账单下载链接失败");
+                    }
+                    // 3. 异步下载ZIP并解析CSV（替换原有直接读取逻辑）
+                    List<string[]> billData = ParseAlipayBillZip(downloadUrl);
+
+                    // 4. 批量插入数据库
+                    BatchInsertAlipayBill(billDate, billData);
+
+                }
             }
         }
     }
