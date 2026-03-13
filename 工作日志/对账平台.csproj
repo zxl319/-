@@ -219,6 +219,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DBHelper.cs" />
+    <Compile Include="LogIn.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="LogIn.Designer.cs">
+      <DependentUpon>LogIn.cs</DependentUpon>
+    </Compile>
     <Compile Include="下载支付宝账单.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -281,6 +287,9 @@
     <Compile Include="配置规则.Designer.cs">
       <DependentUpon>配置规则.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="LogIn.resx">
+      <DependentUpon>LogIn.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="下载支付宝账单.resx">
       <DependentUpon>下载支付宝账单.cs</DependentUpon>
     </EmbeddedResource>
