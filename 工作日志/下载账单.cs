@@ -49,52 +49,6 @@ namespace 对账平台
             _httpClient = new HttpClient();
             _httpClient.Timeout = TimeSpan.FromSeconds(60);
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-            // 读取配置（需在App.config中配置）
-            MCH_ID = ConfigurationManager.AppSettings["WxPay_MchId"];
-            API_KEY = ConfigurationManager.AppSettings["WxPay_ApiKey"];
-            APPID = ConfigurationManager.AppSettings["WxPay_AppId"];
-            SERIAL_NO = ConfigurationManager.AppSettings["WxPay_SerialNo"];             // 证书序列号
-
-            // 2. 相对路径读取私钥文件（核心修改）
-            // 获取程序运行根目录（发布后是exe所在目录，调试时是bin/Debug目录）
-            string appRootPath = AppDomain.CurrentDomain.BaseDirectory;
-            // 拼接相对路径：根目录 → Config → apiclient_key.pem
-            string privateKeyFilePath = Path.Combine(appRootPath, "Config", "apiclient_key.pem");
-
-            // 校验文件是否存在
-            if (!File.Exists(privateKeyFilePath))
-            {
-                // 兼容调试场景（bin/Debug/Config 不存在时，向上找项目根目录的Config）
-                string projectRootPath = Path.GetFullPath(Path.Combine(appRootPath, "../../../"));
-                privateKeyFilePath = Path.Combine(projectRootPath, "Config", "apiclient_key.pem");
-
-                if (!File.Exists(privateKeyFilePath))
-                {
-                    throw new FileNotFoundException("商户私钥文件不存在", privateKeyFilePath);
-                }
-            }
-
-            // 读取私钥文件内容（UTF-8编码，无BOM）
-            MCH_PRIVATE_KEY = File.ReadAllText(privateKeyFilePath, new UTF8Encoding(false));
-
-            // 配置校验
-            var missingConfigs = new List<string>();
-            if (string.IsNullOrEmpty(MCH_ID)) missingConfigs.Add("商户号(MchId)");
-            if (string.IsNullOrEmpty(API_KEY)) missingConfigs.Add("V2密钥(ApiKey)");
-            if (string.IsNullOrEmpty(APPID)) missingConfigs.Add("AppId");
-            if (string.IsNullOrEmpty(MCH_PRIVATE_KEY)) missingConfigs.Add("商户私钥(MchPrivateKey)");
-            if (string.IsNullOrEmpty(SERIAL_NO)) missingConfigs.Add("证书序列号(SerialNo)");
-
-            if (missingConfigs.Any())
-            {
-                MessageBox.Show($"请先在App.config中配置以下微信支付信息：\n{string.Join("\n", missingConfigs)}",
-                    "配置错误", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                button1.Enabled = false;
-            }
-
-
-            
         }
 
 
@@ -578,7 +532,15 @@ namespace 对账平台
             APPLY_BILL_URL = xDoc.Root.Element("WxPayApplyBillUrl")?.Value;
             DOWNLOAD_BILL_URL = xDoc.Root.Element("WxPayDownloadBillUrl")?.Value;
 
+            sd = new StringBuilder();
+            sd.Append("SELECT * FROM DZPT.dbo.WxMerchant WHERE Flag='0'");
+            DataSet oo = db.select_sb(sd.ToString());
 
+            MCH_ID = oo.Tables[0].Rows[0][0].ToString();
+            API_KEY = oo.Tables[0].Rows[0][2].ToString();
+            APPID = oo.Tables[0].Rows[0][1].ToString();
+            MCH_PRIVATE_KEY = oo.Tables[0].Rows[0][4].ToString(); // 商户私钥（V3签名用）
+            SERIAL_NO = oo.Tables[0].Rows[0][3].ToString();       // 商户证书序列号（V3签名用）
             try
             {
                 // 1. 选择账单日期
