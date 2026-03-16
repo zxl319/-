@@ -30,7 +30,7 @@ namespace 对账平台
 
         // 账单常量
         private const string TRADE_BILL_TYPE = "trade";
-        private const string TRADE_BILL_SUB_TYPE = "all";
+        private const string TRADE_BILL_SUB_TYPE = "all"; 
 
         public 下载支付宝账单()
         {
